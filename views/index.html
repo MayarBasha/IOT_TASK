@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LED Brightness Controller</title>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="card">
+        <h2>LED Brightness</h2>
+        
+        <div class="slider-container">
+            <span>0</span>
+            <input type="range" id="brightness" min="0" max="255" value="0">
+            <span>255</span>
+        </div>
+
+        <p class="value-text">
+            Value: <span id="currentValue">0</span>
+        </p>
+    </div>
+
+    <script>
+        var HOST = location.origin.replace(/^http/, 'ws');
+        var ws = new WebSocket(HOST);
+
+        const slider = document.getElementById('brightness');
+        const displayValue = document.getElementById('currentValue');
+
+        // دالة مساعدة لتحديث تلوين شريط السلايدر
+        function updateSliderVisual(val) {
+            displayValue.textContent = val;
+            const percent = (val / slider.max) * 100;
+            slider.style.background = `linear-gradient(to right, #4facfe, #003366 ${percent}%, #e0e0e0 ${percent}%)`;
+        }
+
+        // 2. إرسال القيمة للسيرفر عند تحريك السلايدر
+        slider.addEventListener('input', () => {
+            const val = slider.value;
+            updateSliderVisual(val);
+
+            // إرسال الرقم للسيرفر إذا كان الاتصال مفتوحاً
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(val);
+            }
+        });
+
+        // 3. استقبال البيانات المبعوثة من السيرفر (Broadcast أو القيمة الابتدائية)
+        ws.onmessage = function(event) {
+            const receivedVal = event.data;
+            slider.value = receivedVal;
+            updateSliderVisual(receivedVal);
+        };
+
+        ws.onopen = function() {
+            console.log("Connected to server");
+        };
+
+        ws.onclose = function() {
+            console.log("Disconnected from server!");
+        };
+    </script>
+</body>
+</html>
